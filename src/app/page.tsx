@@ -1,33 +1,74 @@
 import Link from "next/link";
-import { PlanCard } from "@/components/PlanCard";
 import { site } from "@/config/site";
+import { checkBill } from "@/lib/bill-check";
+import { formatUsdCents } from "@/lib/bill-money";
+import { createBillSample } from "@/samples/bill-sample";
+import styles from "./marketing.module.css";
+
+function BillPreview() {
+  const { first } = createBillSample();
+  const result = checkBill(first);
+  const entries = [
+    ["Patient responsibility", first.eob.patientResponsibilityCents],
+    ["Payment applied", result.postedCents],
+    ["Expected balance", result.expectedBalanceCents],
+    ["Provider statement", first.statement.balanceCents],
+  ] as const;
+
+  return (
+    <figure className={styles.preview}>
+      <figcaption className={styles.previewHeading}>
+        <span>Statement check</span>
+        <span>Sample visit</span>
+      </figcaption>
+      <dl className={styles.previewItems}>
+        {entries.map(([label, amount]) => (
+          <div key={label}>
+            <dt>{label}</dt>
+            <dd>{amount === null ? "—" : formatUsdCents(amount)}</dd>
+          </div>
+        ))}
+        {result.differenceCents !== null && (
+          <div className={styles.previewResult}>
+            <dt>Amount to clarify</dt>
+            <dd>{formatUsdCents(result.differenceCents)}</dd>
+          </div>
+        )}
+      </dl>
+      <p className={styles.previewNext}>Ask billing whether the payment was applied to this visit.</p>
+    </figure>
+  );
+}
 
 export default function HomePage() {
   return (
-    <>
-      <section className="hero">
-        <div className="container">
-          <h1>{site.tagline}</h1>
-          <p className="lead">{site.description}</p>
-          <div className="actions">
-            <Link href={site.cta.href} className="button">
-              {site.cta.label}
-            </Link>
-            <Link href="/pricing" className="button button-outline">
-              See pricing
-            </Link>
+    <div className={styles.marketing}>
+      <section className={styles.hero}>
+        <div className={styles.container + " " + styles.heroColumns}>
+          <div className={styles.heroCopy}>
+            <h1>{site.tagline}</h1>
+            <p className={styles.lead}>{site.description}</p>
+            <div className={styles.actions}>
+              <Link href={site.cta.href} className={styles.primary}>
+                {site.cta.label} <span aria-hidden="true">→</span>
+              </Link>
+              <Link href={site.sample.href} className={styles.secondary}>
+                {site.sample.label}
+              </Link>
+            </div>
+            <p className={styles.guestNote}>Free to check a visit. No account required.</p>
           </div>
-          <p className="muted">No sign-up needed.</p>
+          <BillPreview />
         </div>
       </section>
 
-      <section id="how" className="section">
-        <div className="container">
-          <h2>How it works</h2>
-          <ol className="grid">
-            {site.steps.map((step, i) => (
-              <li key={step.title} className="card">
-                <span className="step">{i + 1}</span>
+      <section id="how" className={styles.section}>
+        <div className={styles.container}>
+          <h2>From the first bill to the follow-up</h2>
+          <ol className={styles.steps}>
+            {site.steps.map((step, index) => (
+              <li key={step.title}>
+                <span aria-hidden="true" className={styles.stepNumber}>{index + 1}</span>
                 <h3>{step.title}</h3>
                 <p>{step.text}</p>
               </li>
@@ -36,42 +77,22 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="section section-alt">
-        <div className="container">
-          <h2>Why people use it</h2>
-          <div className="grid">
-            {site.features.map((feature) => (
-              <article key={feature.title} className="card">
-                <h3>{feature.title}</h3>
-                <p>{feature.text}</p>
-              </article>
+      <section id="faq" className={styles.section + " " + styles.faqSection}>
+        <div className={styles.container + " " + styles.faqColumns}>
+          <div>
+            <h2>Common questions</h2>
+            <Link href="/pricing" className={styles.textLink}>View pricing <span aria-hidden="true">→</span></Link>
+          </div>
+          <div className={styles.questions}>
+            {site.faq.map((item) => (
+              <details key={item.q}>
+                <summary>{item.q}</summary>
+                <p>{item.a}</p>
+              </details>
             ))}
           </div>
         </div>
       </section>
-
-      <section className="section">
-        <div className="container">
-          <h2>Pricing</h2>
-          <div className="grid grid-2">
-            {site.plans.map((plan) => (
-              <PlanCard key={plan.id} plan={plan} />
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section id="faq" className="section section-alt">
-        <div className="container narrow">
-          <h2>Questions</h2>
-          {site.faq.map((item) => (
-            <details key={item.q} className="faq">
-              <summary>{item.q}</summary>
-              <p>{item.a}</p>
-            </details>
-          ))}
-        </div>
-      </section>
-    </>
+    </div>
   );
 }

@@ -1,0 +1,133 @@
+.card {
+  display: grid;
+  gap: 1rem;
+  min-width: 0;
+  padding: clamp(1rem, 4vw, 1.5rem);
+  border: 1px solid #d7dfdc;
+  border-radius: 1rem;
+  background: #fffefa;
+  color: #172f36;
+}
+
+.cardHeader {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.4rem 1rem;
+}
+
+.cardHeader h2 {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.cardHeader time,
+.note {
+  margin: 0;
+  color: #465b60;
+  font-size: 0.9rem;
+}
+
+.status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.35rem 0.8rem;
+  padding: 0.9rem 1rem;
+  border-radius: 0.7rem;
+  background: #e4f4ef;
+  color: #1c5b50;
+}
+
+.status[data-status="above_expected"],
+.status[data-status="possible_credit"] {
+  background: #fbefd7;
+  color: #674715;
+}
+
+.status[data-status="needs_info"],
+.status[data-status="below_expected"] {
+  background: #edf1ef;
+  color: #324e51;
+}
+
+.status b {
+  font-size: clamp(1.2rem, 4vw, 1.65rem);
+  line-height: 1.2;
+}
+
+.status b,
+.card dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.amounts,
+.versions,
+.promise {
+  margin: 0;
+}
+
+.amounts div,
+.promise div {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.2rem 1rem;
+}
+
+.amounts div {
+  padding: 0.55rem 0;
+  border-bottom: 1px solid #e4e9e5;
+}
+
+.amounts dt,
+.versions dt {
+  font-size: 0.9rem;
+}
+
+.card dd {
+  font-weight: 650;
+}
+
+.versions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+.versions div {
+  display: grid;
+  gap: 0.25rem;
+  min-width: 0;
+  padding: 0.75rem;
+  border-radius: 0.65rem;
+  background: #edf1ef;
+}
+
+.versions div:last-child {
+  background: #e4f4ef;
+  color: #1c5b50;
+}
+
+.versions dd {
+  font-size: 1.25rem;
+}
+
+.promise {
+  padding: 0.7rem 0.85rem;
+  border: 1px solid #c6ded6;
+  border-radius: 0.65rem;
+  color: #1c5b50;
+  font-size: 0.9rem;
+}
+
+@media (max-width: 26rem) {
+  .versions {
+    grid-template-columns: 1fr;
+  }
+}

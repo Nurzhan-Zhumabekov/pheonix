@@ -1,10 +1,11 @@
-/** Everything you edit to rebrand the site lives here. */
+/** Shared site copy, navigation, and demo prices. */
 
 export type Plan = {
   id: string;
   name: string;
   price: number; // USD per period, 0 = free
   period: "month" | "year";
+  annualPrice?: number;
   blurb: string;
   features: string[];
   cta: string;
@@ -15,30 +16,26 @@ export type Plan = {
 export type Link = { label: string; href: string };
 
 export const site = {
-  name: "Your Product",
-  tagline: "One clear sentence about the problem you solve.",
-  description: "A short description for search results and link previews.",
+  name: "BillShield US",
+  tagline: "You already paid. Check the balance.",
+  description: "Compare your insurance statement, your receipt, and your provider bill for the same visit. See what to ask and check what changes when a new bill arrives.",
   nav: [
     { label: "How it works", href: "/#how" },
     { label: "Pricing", href: "/pricing" },
     { label: "FAQ", href: "/#faq" },
   ] satisfies Link[],
-  cta: { label: "Try it as a guest", href: "/try" } satisfies Link,
+  cta: { label: "Check my bill", href: "/try" } satisfies Link,
+  sample: { label: "Try a sample", href: "/try?sample=1" } satisfies Link,
   steps: [
-    { title: "Add your input", text: "Describe the first thing the user does." },
-    { title: "Get a result", text: "Describe what the product does with it." },
-    { title: "Come back", text: "Describe why the user returns next week." },
-  ],
-  features: [
-    { title: "Feature one", text: "A concrete benefit, not a technology." },
-    { title: "Feature two", text: "A concrete benefit, not a technology." },
-    { title: "Feature three", text: "A concrete benefit, not a technology." },
+    { title: "Compare the amounts", text: "Use the patient responsibility from your final explanation of benefits (EOB), payments applied to the visit, and the balance on your statement." },
+    { title: "Prepare your call", text: "See which office can clarify the difference and copy a question that includes your amounts and dates." },
+    { title: "Check the next statement", text: "Save the balance the clinic quoted. When a new statement arrives, compare it with your original check and the amount you were told." },
   ],
   faq: [
-    { q: "Do I need an account?", a: "No. You can try the full flow as a guest." },
-    { q: "How much does it cost?", a: "The free plan covers the core flow. Paid plans are on the pricing page." },
-    { q: "Where is my data stored?", a: "Say exactly what is stored, where, and for how long." },
-    { q: "How do I cancel?", a: "Say how, in one sentence." },
+    { q: "What do I need to get started?", a: "Have the final explanation of benefits from your insurer, a provider bill, and any receipts for the same visit. Check what each document covers before comparing the amounts." },
+    { q: "What does a difference mean?", a: "A difference identifies an amount to clarify. A payment may have posted after the statement was issued, or the provider may need to explain how it was applied." },
+    { q: "Where is my case saved?", a: "A saved case stays in this browser on this device. Use the clear option in the checker to remove it." },
+    { q: "Does it cost anything to use?", a: "You can check a visit and its follow-up without an account or a payment. The printable Plus report is available through a free demo." },
   ],
   plans: [
     {
@@ -46,9 +43,9 @@ export const site = {
       name: "Free",
       price: 0,
       period: "month",
-      blurb: "Try the core flow.",
-      features: ["Core flow", "Guest mode", "Saved on this device"],
-      cta: "Start free",
+      blurb: "Check one visit and see what changes on the next statement.",
+      features: ["Compare the bill, EOB, and payments", "Prepare a question for billing", "Save one case in this browser", "Check the next statement"],
+      cta: "Check my bill",
       href: "/try",
     },
     {
@@ -56,10 +53,11 @@ export const site = {
       name: "Plus",
       price: 9,
       period: "month",
-      blurb: "For regular use.",
-      features: ["Everything in Free", "Unlimited use", "Reminders and history"],
-      cta: "Upgrade",
-      href: "/pricing#checkout",
+      annualPrice: 59,
+      blurb: "Keep a clear record of the numbers and the follow-up.",
+      features: ["Everything in Free", "Printable case summary", "Original and updated balances together", "Amounts and dates to reference during a call"],
+      cta: "Try report demo",
+      href: "/try?sample=1",
       highlighted: true,
     },
   ] satisfies Plan[],
