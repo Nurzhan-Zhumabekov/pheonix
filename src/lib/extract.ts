@@ -118,6 +118,6 @@ export async function extractPlan(
 
   // Text input: verify against the user's own text. File input: against the transcription.
   const documentText =
-    input.kind === "text" ? input.text : (parsed.data as { document_text: string }).document_text;
+    input.kind === "text" ? input.text : (parsed.data as unknown as { document_text: string }).document_text;
   return verifyPlan(raw, documentText);
 }

@@ -1,16 +1,24 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
+import { Footer } from "@/components/Footer";
+import { Header } from "@/components/Header";
+import { site } from "@/config/site";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Carepath: a clear plan from hospital discharge papers",
-  description:
-    "Upload a parent's discharge papers and get a day-by-day plan with medication times, appointments, warning signs and a calendar file.",
+  title: { default: `${site.name}: ${site.tagline}`, template: `%s | ${site.name}` },
+  description: site.description,
 };
+
+export const viewport: Viewport = { width: "device-width", initialScale: 1 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <Header />
+        <main>{children}</main>
+        <Footer />
+      </body>
     </html>
   );
 }
