@@ -19,6 +19,20 @@
 
 **Напарнику для работы над интерфейсом.** На странице `/try` подключи [типы входа и результата](src/lib/bill-types.ts) и [учебный пример](src/samples/bill-sample.ts). Кнопка **Try a sample** вызывает `createBillSample()`. Поле `first` заполняет начальную форму, `call` и `next` содержат учебные данные для следующих шагов. Деньги в контракте передаются в центах, даты в формате `YYYY-MM-DD`, неизвестные значения — `null`. При редактировании сохраняй локальный ID каждой квитанции.
 
+Функции можно вызывать непосредственно из компонента формы при изменении данных.
+
+```ts
+import { checkBill } from "@/lib/bill-check";
+import { compareNextStatement } from "@/lib/bill-follow-up";
+import { createBillSample } from "@/samples/bill-sample";
+
+const { first, call, next } = createBillSample();
+const initial = checkBill(first);                         // 45000 cents expected
+const followUp = compareNextStatement(first, next, call); // 5000 cents to clarify
+```
+
+Для денежных полей используй `parseUsdCents` и `formatUsdCents` из [bill-money.ts](src/lib/bill-money.ts). При `needs_info` покажи `call.question`. При `matches` проверь `call.action` — платёж после даты счёта может требовать проверки текущего остатка в кабинете клиники. В повторной сверке `current.differenceCents` относится к документам, `promiseDifferenceCents` — к обещанию клиники. Значение `null` означает, что сравнение недоступно. Если платежи прежние, опусти `next.payments`. При изменении передай полный список квитанций с их исходными ID.
+
 ## Расписание по Актобе
 
 | Время | Ты — расчёты и публикация | Напарник — интерфейс и презентация | Как понять, что этап готов |
