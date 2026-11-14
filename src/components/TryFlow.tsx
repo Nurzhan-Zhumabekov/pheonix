@@ -4,6 +4,10 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { checkBill } from "@/lib/bill-check";
 import { compareNextStatement } from "@/lib/bill-follow-up";
 import {
+  clearSavedCase, readSavedCases, resolutionState, writeSavedCase,
+  type GuestCase, type SavedCases,
+} from "@/lib/bill-guest-case";
+import {
   emptyBillDraft, emptyCallDraft, emptyNextDraft, sampleDrafts,
   toBillInput, toCallRecord, toNextStatementInput,
   type BillDraft, type CallDraft, type NextDraft, type PaymentDraft,
@@ -12,20 +16,6 @@ import type { BillCheck } from "@/lib/bill-types";
 import { BillCheckSummary, BillComparisonSummary } from "./BillCheckSummary";
 import { PrintableBillReport } from "./PrintableBillReport";
 import styles from "./TryFlow.module.css";
-
-const storageKey = "billshield:guest-case:v1";
-
-interface GuestCase {
-  first: BillDraft;
-  call: CallDraft;
-  next: NextDraft;
-  sample: boolean;
-  checked: boolean;
-  callOpen: boolean;
-  nextOpen: boolean;
-  compared: boolean;
-  resolved: boolean;
-}
 
 function newCase(sample: boolean): GuestCase {
   return {
@@ -204,7 +194,9 @@ function CallGuidance({ check }: { check: BillCheck }) {
 
 export function TryFlow({ startWithSample = false }: { startWithSample?: boolean }) {
   const [draft, setDraft] = useState(() => newCase(startWithSample));
-  const [saved, setSaved] = useState<GuestCase | null>(null);
+  const [saved, setSaved] = useState<SavedCases>({ personal: null, sample: null });
+  const resumeCase = saved.personal ?? saved.sample;
+  const activeSave = draft.sample ? saved.sample : saved.personal;
   const [storageMessage, setStorageMessage] = useState("");
   const [showPaywall, setShowPaywall] = useState(false);
   const [unlocked, setUnlocked] = useState(false);
@@ -212,13 +204,7 @@ export function TryFlow({ startWithSample = false }: { startWithSample?: boolean
 
   useEffect(() => {
     try {
-      const raw = window.localStorage.getItem(storageKey);
-      if (raw) {
-        const value = JSON.parse(raw) as Partial<GuestCase> | null;
-        if (value?.first && value.call && value.next && typeof value.checked === "boolean") {
-          setSaved(value as GuestCase);
-        }
-      }
+      setSaved(readSavedCases(window.localStorage));
     } catch {
       setStorageMessage("This browser could not open the saved case. You can still check a statement.");
     }
@@ -237,8 +223,7 @@ export function TryFlow({ startWithSample = false }: { startWithSample?: boolean
     ...first, sameVisit: next.sameVisit, statement: next.statement,
     eob: next.eob ?? first.eob, payments: next.payments === undefined ? first.payments : next.payments,
   };
-  const canResolve = comparison?.current.status === "matches" &&
-    comparison.current.call.action === "none" && (comparison.promiseDifferenceCents ?? 0) === 0;
+  const resolution = resolutionState(comparison, call, first.statement.issuedOn, next.statement.issuedOn);
 
   function updateFirst(patch: Partial<BillDraft>) {
     setDraft((current) => ({
@@ -260,8 +245,8 @@ export function TryFlow({ startWithSample = false }: { startWithSample?: boolean
   }
   function saveCase(current: GuestCase) {
     try {
-      window.localStorage.setItem(storageKey, JSON.stringify(current));
-      setSaved(current);
+      writeSavedCase(window.localStorage, current);
+      setSaved(readSavedCases(window.localStorage));
       setStorageMessage("Case saved on this browser.");
     } catch {
       setStorageMessage("This browser could not save the case. Keep this page open to continue.");
@@ -269,8 +254,8 @@ export function TryFlow({ startWithSample = false }: { startWithSample?: boolean
   }
   function clearCase() {
     try {
-      window.localStorage.removeItem(storageKey);
-      setSaved(null);
+      clearSavedCase(window.localStorage, draft.sample);
+      setSaved(readSavedCases(window.localStorage));
       loadCase(newCase(false));
       setStorageMessage("Saved case cleared.");
     } catch {
@@ -284,7 +269,9 @@ export function TryFlow({ startWithSample = false }: { startWithSample?: boolean
         <div className={styles.actions}>
           <button className={styles.secondary} type="button" onClick={() => loadCase(newCase(true))}>Try a sample</button>
           <button className={styles.textButton} type="button" onClick={() => loadCase(newCase(false))}>Start a blank check</button>
-          {saved && <button className={styles.textButton} type="button" onClick={() => loadCase(saved)}>Resume case</button>}
+          {resumeCase && <button className={styles.textButton} type="button" onClick={() => loadCase(resumeCase)}>Resume case</button>}
+          {saved.personal && saved.sample && <button className={styles.textButton} type="button"
+            onClick={() => loadCase(saved.sample!)}>Resume sample</button>}
         </div>
         {draft.sample && <span className={styles.badge}>Fictional sample</span>}
       </div>
@@ -344,7 +331,7 @@ export function TryFlow({ startWithSample = false }: { startWithSample?: boolean
               </div>
             )}
             {storageMessage && <p role="status" className={styles.hint}>{storageMessage}</p>}
-            {saved && <button type="button" className={styles.textButton} onClick={clearCase}>Clear saved case</button>}
+            {activeSave && <button type="button" className={styles.textButton} onClick={clearCase}>Clear saved case</button>}
           </aside>
 
         <div className={styles.steps}>
@@ -442,7 +429,13 @@ export function TryFlow({ startWithSample = false }: { startWithSample?: boolean
                   <BillCheckSummary input={nextBill} check={comparison.current} title="New statement result" />
                   <BillComparisonSummary comparison={comparison} />
                   {comparison.current.call.question && <p className={styles.hint}>{comparison.current.call.question}</p>}
-                  {canResolve && (
+                  {resolution === "check_call_date" && <p className={styles.hint}>
+                    Check the call date to compare this statement with the promised balance.
+                  </p>}
+                  {resolution === "await_later_statement" && <p className={styles.hint}>
+                    Use a statement issued after the call to check the promised balance.
+                  </p>}
+                  {resolution === "ready" && (
                     draft.resolved
                       ? <p className={styles.resolved} role="status">Case marked as resolved.</p>
                       : <button type="button" className={styles.secondary} onClick={() => {
