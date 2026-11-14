@@ -33,6 +33,15 @@ const followUp = compareNextStatement(first, next, call); // 5000 cents to clari
 
 Для денежных полей используй `parseUsdCents` и `formatUsdCents` из [bill-money.ts](src/lib/bill-money.ts). При `needs_info` покажи `call.question`. При `matches` проверь `call.action` — платёж после даты счёта может требовать проверки текущего остатка в кабинете клиники. В повторной сверке `current.differenceCents` относится к документам, `promiseDifferenceCents` — к обещанию клиники. Значение `null` означает, что сравнение недоступно. Если платежи прежние, опусти `next.payments`. При изменении передай полный список квитанций с их исходными ID.
 
+**Печатный отчёт.** После деморазблокировки выведи один [PrintableBillReport](src/components/PrintableBillReport.tsx) с данными открытого дела. Пропусти `call` или `next`, если пользователь ещё не прошёл соответствующий шаг. Метка `sample` предназначена для учебных данных. Кнопка печати встроена. Отдельный пример доступен по `/report/sample`.
+
+```tsx
+import { PrintableBillReport } from "@/components/PrintableBillReport";
+
+// В компоненте, где уже есть состояние дела и признак демодоступа:
+return unlocked ? <PrintableBillReport first={first} call={call} next={next} /> : null;
+```
+
 ## Расписание по Актобе
 
 | Время | Ты — расчёты и публикация | Напарник — интерфейс и презентация | Как понять, что этап готов |

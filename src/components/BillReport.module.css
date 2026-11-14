@@ -1,0 +1,75 @@
+.report {
+  --ink: #152e30;
+  --muted: #4f6464;
+  --rule: #c6d2ce;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 8.5in;
+  margin: 0 auto;
+  padding: clamp(1rem, 4vw, 2.5rem);
+  background: #fff;
+  color: var(--ink);
+  font: 15px/1.4 "Inter", system-ui, sans-serif;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.header, .summary { display: flex; align-items: center; justify-content: space-between; gap: 1em; }
+.header { padding-bottom: .45em; border-bottom: 2px solid var(--ink); }
+.report p { margin: 0; }
+.brand { font-size: 1.02em; font-weight: 750; letter-spacing: -.025em; }
+.sample, .visit, .summary span, .note, .call dt { color: var(--muted); }
+.sample { font-size: .88em; }
+.report h1 {
+  font: 600 2.25em/1.13 "Georgia", serif;
+  margin: .37em 0 .1em;
+  letter-spacing: -.045em;
+}
+.summary {
+  margin-top: 1em;
+  padding: .65em 0;
+  border-block: 1px solid var(--rule);
+}
+.summary span, .summary strong { display: block; }
+.summary span { font-size: .85em; }
+.summary strong { font-size: 1.18em; }
+.summary b { font-size: 2em; line-height: 1.1; letter-spacing: -.045em; }
+.summaryAmount { text-align: right; }
+.report section { margin: 1em 0 0; }
+.report h2 { font-size: 1.13em; line-height: 1.25; margin: 0 0 .35em; }
+.report table { width: 100%; border-collapse: collapse; font-size: .92em; }
+.report caption { text-align: left; color: var(--muted); font-size: .93em; padding-block: .1em; }
+.report th, .report td {
+  text-align: left;
+  border-bottom: 1px solid var(--rule);
+  padding: .23em .4em;
+  vertical-align: top;
+}
+.report thead th { color: var(--muted); font-size: .9em; font-weight: 650; }
+.report tbody th { font-weight: 500; }
+.report tr > :first-child { padding-left: 0; }
+.report tr > :last-child { padding-right: 0; }
+.comparison td, .comparison thead th:not(:first-child), .receipts tr > :last-child { text-align: right; }
+.comparison tbody tr:last-child th, .comparison tbody tr:last-child td { font-weight: 700; }
+.receipts + .receipts { margin-top: .5em; }
+.call { display: flex; flex-wrap: wrap; gap: .4em 2.2em; margin: 0; }
+.call dt { font-size: .85em; }
+.call dd { font-weight: 600; margin: 0; }
+.call + .note { margin-top: .34em; }
+
+@media screen and (max-width: 36rem) {
+  .report { font-size: 14px; }
+  .summary { flex-wrap: wrap; }
+  .comparison { table-layout: fixed; }
+  .comparison th:first-child { width: 32%; }
+}
+
+@media print {
+  .report { max-width: none; margin: 0; padding: 0; font-size: 10.5pt; line-height: 1.32; }
+  .report section { margin-top: .8em; }
+  .report h1 { font-size: 25pt; }
+  .report h2, .report caption { break-after: avoid; }
+  .report thead { display: table-header-group; }
+  .report tr, .short, .summary, .header { break-inside: avoid; }
+  .report p { orphans: 2; widows: 2; }
+}

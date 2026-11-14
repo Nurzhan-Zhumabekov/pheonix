@@ -1,0 +1,10 @@
+.sample {
+  margin-inline: auto;
+  padding: clamp(0.75rem, 3vw, 2rem);
+}
+
+/* The standalone sample is also the print preview for the team. */
+:global(body):has(.sample) > :global(header),
+:global(body):has(.sample) > :global(footer) {
+  display: none;
+}

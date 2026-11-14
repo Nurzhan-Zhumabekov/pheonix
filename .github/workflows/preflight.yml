@@ -1,0 +1,45 @@
+name: Deployment preflight
+
+on:
+  pull_request:
+  push:
+    branches:
+      - 'billshield/**'
+      - 'nurzhan-zhumabekov/festive-pascal-7krgh2'
+
+permissions:
+  contents: read
+
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      NEXT_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run typecheck
+      - run: npm run build
+      - name: Smoke-test the production build
+        env:
+          PORT: '3100'
+        run: |
+          node_modules/.bin/next start --hostname 127.0.0.1 > "$RUNNER_TEMP/billshield-server.log" 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          base_url="http://127.0.0.1:$PORT"
+          curl --fail --silent --show-error --retry 15 --retry-connrefused --retry-delay 1 "$base_url/api/health" -o "$RUNNER_TEMP/health.json"
+          jq -e '.status == "ok"' "$RUNNER_TEMP/health.json"
+          curl --fail --silent --show-error "$base_url/report/sample" -o "$RUNNER_TEMP/report.html"
+          grep -Fq 'Print / Save as PDF' "$RUNNER_TEMP/report.html"
+      - name: Show server log on failure
+        if: failure()
+        run: if test -f "$RUNNER_TEMP/billshield-server.log"; then cat "$RUNNER_TEMP/billshield-server.log"; fi

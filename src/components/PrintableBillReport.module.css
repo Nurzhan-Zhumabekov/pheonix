@@ -1,0 +1,34 @@
+.viewer {
+  margin-inline: auto;
+  max-width: 52rem;
+}
+
+.toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-block-end: 1rem;
+}
+
+.paper {
+  min-width: 0;
+}
+
+@page billshield {
+  size: letter portrait;
+  margin: 0.55in 0.65in;
+}
+
+@media print {
+  .paper {
+    page: billshield;
+  }
+
+  /* The caller can mount the report inside the guest workflow or on its own route. */
+  :global(body):has(.paper) *:not(.paper, .paper *, :has(.paper)) {
+    display: none !important;
+  }
+
+  :global(body):has(.paper) *:has(.paper) {
+    display: contents !important;
+  }
+}
