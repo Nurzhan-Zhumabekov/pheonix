@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { site } from "@/config/site";
+import { PricingReportCheckout } from "./PricingReportCheckout";
 import styles from "../marketing.module.css";
 
 export const metadata: Metadata = { title: "Pricing" };
@@ -27,15 +28,18 @@ export default function PricingPage() {
                 <ul>
                   {plan.features.map((feature) => <li key={feature}>{feature}</li>)}
                 </ul>
-                <Link href={plan.href} className={plan.highlighted ? styles.primary : styles.secondary}>
-                  {plan.cta} <span aria-hidden="true">→</span>
-                </Link>
+                {plan.id === "plus" ? (
+                  <a href={plan.href} className={styles.primary}>{plan.cta} <span aria-hidden="true">→</span></a>
+                ) : (
+                  <Link href={plan.href} className={styles.secondary}>{plan.cta} <span aria-hidden="true">→</span></Link>
+                )}
               </article>
             ))}
           </div>
           <p className={styles.pricingNote}>
             The Plus report is available to try without payment. <Link href="/report/sample">See a sample report.</Link>
           </p>
+          <PricingReportCheckout />
         </div>
       </section>
     </div>

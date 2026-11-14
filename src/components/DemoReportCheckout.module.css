@@ -1,0 +1,32 @@
+.checkout {
+  display: grid;
+  width: min(100%, 28rem);
+  gap: .85rem;
+  color: #142b38;
+}
+.checkout h2, .checkout p { margin: 0; }
+.checkout label { display: grid; gap: .32rem; margin: .35rem 0 0; }
+.checkout input {
+  width: 100%;
+  padding: .7rem .8rem;
+  color: #294944;
+  border: 1px solid #adc3b9;
+  border-radius: .55rem;
+  background: #f5f9f6;
+  font: 500 1rem/1.4 ui-monospace, monospace;
+  letter-spacing: .04em;
+}
+.note { color: #495f66; font-size: .9rem; }
+.checkout button {
+  justify-self: start;
+  background: #185852;
+  border: 0;
+  border-radius: .58rem;
+  padding: .75rem 1rem;
+  color: white;
+  font: inherit;
+  font-weight: 650;
+  cursor: pointer;
+}
+.checkout button:hover { background: #124741; }
+.checkout button:focus-visible { outline: 3px solid #288c80; outline-offset: 2px; }

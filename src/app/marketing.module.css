@@ -390,6 +390,16 @@
   margin: 0;
 }
 
+.checkoutPanel {
+  max-width: 52rem;
+  margin-top: 1.4rem;
+  padding: clamp(1rem, 3vw, 2rem);
+  background: #fff;
+  border: 1px solid var(--rule);
+  border-radius: .85rem;
+  scroll-margin-top: 6rem;
+}
+
 @media (max-width: 48rem) {
   .heroColumns,
   .faqColumns {

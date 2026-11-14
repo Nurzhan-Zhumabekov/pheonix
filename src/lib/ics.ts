@@ -1,4 +1,6 @@
-import { addDays } from "./dates";
+import type { CallRecord } from "./bill-types";
+import { formatUsdCents } from "./bill-money";
+import { addDays, isIsoDate } from "./dates";
 import type { Schedule, ScheduleItem } from "./schedule";
 
 /** Builds an iCalendar (.ics) file from the schedule. Pure and browser-safe. */
@@ -88,5 +90,42 @@ export function buildIcs(schedule: Schedule, now: Date = new Date()): string {
     for (const item of day.items) lines.push(...eventLines(item, now));
   }
   lines.push("END:VCALENDAR");
+  return lines.map(foldLine).join(CRLF) + CRLF;
+}
+
+/** One all-day event per saved billing case. Re-exporting an edited promise keeps its UID. */
+export function buildFollowUpIcs(
+  caseId: string,
+  call: CallRecord,
+  statementBalanceCents: number | null,
+  now: Date = new Date(),
+  recipient: "clinic" | "insurer" = "clinic",
+): string | null {
+  if (!caseId || !isIsoDate(call.followUpOn)) return null;
+  const knownAmount = (cents: number | null): cents is number =>
+    cents !== null && Number.isSafeInteger(cents) && cents >= 0;
+  let summary = recipient === "insurer" ? "Check health plan's claim update" : "Check clinic's revised statement";
+  if (knownAmount(call.promisedBalanceCents)) {
+    summary += " — promised balance " + formatUsdCents(call.promisedBalanceCents);
+    if (knownAmount(statementBalanceCents)) summary += " (was " + formatUsdCents(statementBalanceCents) + ")";
+  }
+  const followUp = recipient === "insurer"
+    ? "Ask your health plan for the claim status and the final explanation of benefits."
+    : "Ask the billing office for the updated balance for this visit.";
+  const description = isIsoDate(call.calledOn) ? `Follow up on your ${call.calledOn} call. ${followUp}` : followUp;
+  const nextDay = addDays(call.followUpOn, 1);
+  const lines = [
+    "BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//BillShield US//Billing follow-up//EN",
+    "CALSCALE:GREGORIAN", "BEGIN:VEVENT",
+    "UID:" + encodeURIComponent(caseId) + "@billshield-us.vercel.app",
+    "DTSTAMP:" + stamp(now),
+    "DTSTART;VALUE=DATE:" + compactDate(call.followUpOn),
+    ...(isIsoDate(nextDay) ? ["DTEND;VALUE=DATE:" + compactDate(nextDay)] : []),
+    "SUMMARY:" + escapeText(summary),
+    "DESCRIPTION:" + escapeText(description),
+    "TRANSP:TRANSPARENT",
+    "BEGIN:VALARM", "ACTION:DISPLAY", "TRIGGER:PT9H", "DESCRIPTION:" + escapeText(summary),
+    "END:VALARM", "END:VEVENT", "END:VCALENDAR",
+  ];
   return lines.map(foldLine).join(CRLF) + CRLF;
 }

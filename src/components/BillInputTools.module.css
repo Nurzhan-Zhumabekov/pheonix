@@ -1,0 +1,32 @@
+.scenarios {
+  border: 0;
+  margin: 0 0 1.25rem;
+  padding: 0;
+}
+.scenarios legend { padding: 0; margin-bottom: .4rem; font-size: .91rem; font-weight: 650; }
+.buttons { display: flex; flex-wrap: wrap; gap: .4rem; }
+.buttons button {
+  padding: .45rem .75rem;
+  border: 1px solid #9cb9b0;
+  border-radius: .5rem;
+  background: #fff;
+  color: var(--teal);
+  font-family: inherit;
+  font-size: .88rem;
+  font-weight: 600;
+  line-height: 1.4;
+  cursor: pointer;
+}
+.buttons button:hover { background: var(--mint); }
+.outcome { margin: .5rem 0 0; color: var(--quiet); font-size: .9rem; }
+.paste { margin-bottom: 1rem; border-block: 1px solid var(--border); }
+.paste summary { color: var(--teal); padding: .7rem 0; font-weight: 650; cursor: pointer; }
+.panel { display: grid; gap: .5rem; padding-bottom: 1rem; }
+.panel textarea { font: inherit; line-height: 1.45; }
+.panel button:disabled { opacity: .6; cursor: default; }
+.preview { padding: .7rem .85rem; background: var(--mint); border-radius: .55rem; }
+.preview h3 { font-size: 1rem; }
+.preview dl { margin: 0 0 .7rem; }
+.preview dl > div { display: flex; justify-content: space-between; gap: .5rem; }
+.preview dd { margin: 0; font-variant-numeric: tabular-nums; }
+.preview button { margin-top: .6rem; }

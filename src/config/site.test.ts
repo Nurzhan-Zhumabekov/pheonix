@@ -28,6 +28,6 @@ describe("site config", () => {
 
     expect(free?.features).toContain("Check the next statement");
     expect(free?.href).toBe("/try");
-    expect(plus).toMatchObject({ price: 9, annualPrice: 59, href: site.sample.href });
+    expect(plus).toMatchObject({ price: 9, annualPrice: 59, href: "/pricing#report-checkout" });
   });
 });

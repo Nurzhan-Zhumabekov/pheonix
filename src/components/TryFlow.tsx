@@ -5,22 +5,29 @@ import { checkBill } from "@/lib/bill-check";
 import { compareNextStatement } from "@/lib/bill-follow-up";
 import {
   clearSavedCase, readSavedCases, resolutionState, writeSavedCase,
-  type GuestCase, type SavedCases,
+  type GuestCase, type SavedCases, type SavedVisit,
 } from "@/lib/bill-guest-case";
 import {
   emptyBillDraft, emptyCallDraft, emptyNextDraft, sampleDrafts,
   toBillInput, toCallRecord, toNextStatementInput,
   type BillDraft, type CallDraft, type NextDraft, type PaymentDraft,
 } from "@/lib/bill-draft";
-import type { BillCheck } from "@/lib/bill-types";
+import { BillCallGuidance, FollowUpReminder } from "./BillCallGuidance";
 import { BillCheckSummary, BillComparisonSummary } from "./BillCheckSummary";
+import { QuickDemoScenarios, SmartPaste } from "./BillInputTools";
+import type { DemoScenario } from "@/samples/bill-sample";
+import { HouseholdTracker } from "./HouseholdTracker";
 import { PrintableBillReport } from "./PrintableBillReport";
+import { DemoReportCheckout } from "./DemoReportCheckout";
+import { rememberOpenCheck } from "@/lib/pricing-report";
 import styles from "./TryFlow.module.css";
 
-function newCase(sample: boolean): GuestCase {
+function newCase(sample: boolean, scenario?: DemoScenario): GuestCase {
+  const showFollowUp = scenario === "credit" || scenario === "copay";
   return {
-    ...(sample ? sampleDrafts() : { first: emptyBillDraft(), call: emptyCallDraft(), next: emptyNextDraft() }),
-    sample, checked: sample, callOpen: false, nextOpen: false, compared: false, resolved: false,
+    ...(sample ? sampleDrafts(scenario) : { first: emptyBillDraft(), call: emptyCallDraft(), next: emptyNextDraft() }),
+    sample, checked: sample, callOpen: scenario !== undefined && scenario !== "credit",
+    nextOpen: showFollowUp, compared: showFollowUp, resolved: false,
   };
 }
 
@@ -116,7 +123,7 @@ function PaymentFields({ known, payments, onKnown, onPayments, keep, allowUnknow
           <span>I know which payments I made, including if I made none.</span>
         </label>
       )}
-      {known && (
+      {(known || payments.length > 0) && (
         <>
           {payments.length === 0 && <p className={styles.hint}>No payments entered. Add each receipt you want to check.</p>}
           {payments.map((receipt, index) => (
@@ -146,9 +153,9 @@ function PaymentFields({ known, payments, onKnown, onPayments, keep, allowUnknow
               )}
             </fieldset>
           ))}
-          <button type="button" className={styles.secondary} onClick={() => onPayments([
+          {known && <button type="button" className={styles.secondary} onClick={() => onPayments([
             ...payments, { id: crypto.randomUUID(), amount: "", postedOn: "", allocation: "this_visit" },
-          ])}>Add payment</button>
+          ])}>Add payment</button>}
         </>
       )}
     </div>
@@ -159,55 +166,34 @@ function StepTitle({ number, title }: { number: string; title: string }) {
   return <h2 className={styles.stepTitle}><span aria-hidden="true">{number}</span>{title}</h2>;
 }
 
-const callActions: Record<BillCheck["call"]["action"], { title: string; hint: string }> = {
-  call_provider: { title: "Provider billing", hint: "Use the billing phone number printed on your clinic statement." },
-  call_insurer: { title: "Your health plan", hint: "Use the number on your insurance card or EOB." },
-  check_portal: { title: "Check the current balance", hint: "Open your provider’s portal and look for the balance for this visit." },
-  review_input: { title: "Review the documents", hint: "Check the amounts and dates before contacting billing." },
-  none: { title: "No call suggested", hint: "The amounts match for this statement." },
-};
-
-function CallGuidance({ check }: { check: BillCheck }) {
-  const [copyStatus, setCopyStatus] = useState("");
-  const action = callActions[check.call.action];
-  return (
-    <div className={styles.guidance}>
-      <h3>{action.title}</h3>
-      <p>{action.hint}</p>
-      {check.call.question && (
-        <>
-          <blockquote>{check.call.question}</blockquote>
-          <button className={styles.secondary} type="button" onClick={async () => {
-            try {
-              await navigator.clipboard.writeText(check.call.question);
-              setCopyStatus("Copied.");
-            } catch {
-              setCopyStatus("Select and copy the text above.");
-            }
-          }}>Copy text</button>
-          <span className={styles.inlineStatus} role="status">{copyStatus}</span>
-        </>
-      )}
-    </div>
-  );
-}
-
 export function TryFlow({ startWithSample = false }: { startWithSample?: boolean }) {
   const [draft, setDraft] = useState(() => newCase(startWithSample));
-  const [saved, setSaved] = useState<SavedCases>({ personal: null, sample: null });
-  const resumeCase = saved.personal ?? saved.sample;
-  const activeSave = draft.sample ? saved.sample : saved.personal;
+  const [formVersion, setFormVersion] = useState(0);
+  const [saved, setSaved] = useState<SavedCases>({ visits: [], sample: null });
+  const [activeCaseId, setActiveCaseId] = useState<string | null>(null);
+  const [visitLabel, setVisitLabel] = useState("");
+  const latestVisit = saved.visits[0];
+  const resumeCase = latestVisit?.draft ?? saved.sample;
+  const activeSave = draft.sample ? (activeCaseId === "sample" ? saved.sample : null)
+    : saved.visits.find(visit => visit.id === activeCaseId)?.draft ?? null;
   const [storageMessage, setStorageMessage] = useState("");
   const [showPaywall, setShowPaywall] = useState(false);
   const [unlocked, setUnlocked] = useState(false);
   const reportRef = useRef<HTMLElement>(null);
 
+  useEffect(() => { rememberOpenCheck(draft); }, [draft]);
+
   useEffect(() => {
-    try {
-      setSaved(readSavedCases(window.localStorage));
-    } catch {
-      setStorageMessage("This browser could not open the saved case. You can still check a statement.");
+    function refreshSaved() {
+      try {
+        setSaved(readSavedCases(window.localStorage));
+      } catch {
+        setStorageMessage("This browser could not open the saved case. You can still check a statement.");
+      }
     }
+    refreshSaved();
+    window.addEventListener("storage", refreshSaved);
+    return () => window.removeEventListener("storage", refreshSaved);
   }, []);
 
   useEffect(() => {
@@ -237,7 +223,10 @@ export function TryFlow({ startWithSample = false }: { startWithSample?: boolean
   function updateNext(patch: Partial<NextDraft>) {
     setDraft((current) => ({ ...current, resolved: false, next: { ...current.next, ...patch } }));
   }
-  function loadCase(nextCase: GuestCase) {
+  function loadCase(nextCase: GuestCase, visit?: SavedVisit | "sample") {
+    setFormVersion(version => version + 1);
+    setActiveCaseId(visit === "sample" ? visit : visit?.id ?? null);
+    setVisitLabel(visit === "sample" ? "" : visit?.label ?? "");
     setDraft(nextCase);
     setShowPaywall(false);
     setUnlocked(false);
@@ -245,18 +234,22 @@ export function TryFlow({ startWithSample = false }: { startWithSample?: boolean
   }
   function saveCase(current: GuestCase) {
     try {
-      writeSavedCase(window.localStorage, current);
+      const id = current.sample ? "sample" : activeCaseId ?? crypto.randomUUID();
+      writeSavedCase(window.localStorage, current, id, visitLabel);
+      setActiveCaseId(id);
       setSaved(readSavedCases(window.localStorage));
       setStorageMessage("Case saved on this browser.");
+      return true;
     } catch {
       setStorageMessage("This browser could not save the case. Keep this page open to continue.");
+      return false;
     }
   }
-  function clearCase() {
+  function clearCase(sample: boolean, id: string | null) {
     try {
-      clearSavedCase(window.localStorage, draft.sample);
+      clearSavedCase(window.localStorage, sample, id);
       setSaved(readSavedCases(window.localStorage));
-      loadCase(newCase(false));
+      if ((sample && draft.sample) || (!sample && activeCaseId === id)) loadCase(newCase(false));
       setStorageMessage("Saved case cleared.");
     } catch {
       setStorageMessage("This browser could not clear the saved case.");
@@ -269,15 +262,31 @@ export function TryFlow({ startWithSample = false }: { startWithSample?: boolean
         <div className={styles.actions}>
           <button className={styles.secondary} type="button" onClick={() => loadCase(newCase(true))}>Try a sample</button>
           <button className={styles.textButton} type="button" onClick={() => loadCase(newCase(false))}>Start a blank check</button>
-          {resumeCase && <button className={styles.textButton} type="button" onClick={() => loadCase(resumeCase)}>Resume case</button>}
-          {saved.personal && saved.sample && <button className={styles.textButton} type="button"
-            onClick={() => loadCase(saved.sample!)}>Resume sample</button>}
+          {resumeCase && <button className={styles.textButton} type="button" onClick={() => loadCase(resumeCase, latestVisit ?? "sample")}>Resume case</button>}
+          {latestVisit && saved.sample && <button className={styles.textButton} type="button"
+            onClick={() => loadCase(saved.sample!, "sample")}>Resume sample</button>}
         </div>
         {draft.sample && <span className={styles.badge}>Fictional sample</span>}
       </div>
+      <HouseholdTracker visits={saved.visits} draft={draft} currentId={activeCaseId} savedDraft={activeSave}
+        check={check} comparison={comparison} label={visitLabel} onLabel={setVisitLabel}
+        onOpen={visit => loadCase(visit.draft, visit)} onDelete={id => clearCase(false, id)} />
+      <QuickDemoScenarios onSelect={scenario => loadCase(newCase(true, scenario))}
+        result={draft.sample ? comparison?.current ?? check : null} followUp={Boolean(comparison)} />
       <div className={styles.layout}>
           <section className={styles.section + " " + styles.firstSection} aria-label="First statement">
             <StepTitle number="1" title="Check your statement" />
+            <SmartPaste key={formVersion} draft={draft.sample ? emptyBillDraft() : draft.first} sample={draft.sample}
+              onApply={(patch, otherVisit) => {
+                if (otherVisit && !saveCase(draft)) return false;
+                if (draft.sample || otherVisit) {
+                  const personal = newCase(false);
+                  loadCase({ ...personal, first: { ...personal.first, ...patch } });
+                } else {
+                  updateFirst(patch);
+                }
+                return true;
+              }} />
             <form onSubmit={(event) => {
               event.preventDefault();
               setDraft((current) => ({ ...current, checked: true }));
@@ -327,11 +336,12 @@ export function TryFlow({ startWithSample = false }: { startWithSample?: boolean
                 <button className={styles.textButton} type="button" onClick={() => {
                   if (showPaywall) reportRef.current?.focus();
                   setShowPaywall(true);
-                }}>View case report</button>
+                }}>{unlocked ? "View case report" : "Unlock printable case report · Plus $9/month"}</button>
               </div>
             )}
             {storageMessage && <p role="status" className={styles.hint}>{storageMessage}</p>}
-            {activeSave && <button type="button" className={styles.textButton} onClick={clearCase}>Clear saved case</button>}
+            {activeSave && <button type="button" className={styles.textButton}
+              onClick={() => clearCase(draft.sample, activeCaseId)}>Clear saved case</button>}
           </aside>
 
         <div className={styles.steps}>
@@ -340,7 +350,7 @@ export function TryFlow({ startWithSample = false }: { startWithSample?: boolean
               <StepTitle number="2" title="Prepare my call" />
               {draft.callOpen ? (
                 <>
-                  <CallGuidance check={check} />
+                  <BillCallGuidance input={first} check={check} />
                   <h3 className={styles.subheading}>Record the answer</h3>
                   <div className={styles.fieldGrid}>
                     <DateField label="Call date" value={draft.call.calledOn} onChange={(calledOn) => updateCall({ calledOn })} />
@@ -348,8 +358,10 @@ export function TryFlow({ startWithSample = false }: { startWithSample?: boolean
                       onChange={(promisedBalance) => updateCall({ promisedBalance })} />
                     <DateField label="Follow-up date" value={draft.call.followUpOn} onChange={(followUpOn) => updateCall({ followUpOn })} />
                   </div>
-                  <div className={styles.actions}><button className={styles.secondary} type="button"
-                    onClick={() => saveCase(draft)}>Save case</button></div>
+                  <div className={styles.actions}>
+                    <button className={styles.secondary} type="button" onClick={() => saveCase(draft)}>Save case</button>
+                    <FollowUpReminder caseId={draft.sample ? "sample" : activeCaseId} saved={activeSave} current={draft} />
+                  </div>
                 </>
               ) : (
                 <button type="button" className={styles.secondary}
@@ -454,15 +466,9 @@ export function TryFlow({ startWithSample = false }: { startWithSample?: boolean
       {showPaywall && check && (
         <section className={styles.report} ref={reportRef} tabIndex={-1} aria-label="Case report">
           {unlocked ? (
-            <PrintableBillReport first={first} call={call} next={draft.compared ? next : null} sample={draft.sample} />
+            <PrintableBillReport first={first} call={draft.callOpen ? call : null} next={draft.compared ? next : null} sample={draft.sample} />
           ) : (
-            <>
-              <p className={styles.badge}>BillShield Plus</p>
-              <h2>Printable case report</h2>
-              <p>Keep a single record of the amounts, your billing question and the follow-up.</p>
-              <p className={styles.price}>$9/month or $59/year</p>
-              <button className={styles.primary} type="button" onClick={() => setUnlocked(true)}>Unlock demo — no charge</button>
-            </>
+            <DemoReportCheckout onUnlock={() => setUnlocked(true)} />
           )}
         </section>
       )}

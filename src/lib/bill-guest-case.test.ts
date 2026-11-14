@@ -9,6 +9,8 @@ import { createBillSample } from "../samples/bill-sample";
 function memoryStorage() {
   const values = new Map<string, string>();
   return {
+    get length() { return values.size; },
+    key: (index: number) => [...values.keys()][index] ?? null,
     getItem: (key: string) => values.get(key) ?? null,
     setItem: (key: string, value: string) => { values.set(key, value); },
     removeItem: (key: string) => { values.delete(key); },
@@ -27,32 +29,34 @@ describe("saved guest cases", () => {
     own.first.balance = "78.90";
     storage.setItem("billshield:guest-case:v1", JSON.stringify(own));
     const demo = { ...guestCase(true), resolved: true };
-    writeSavedCase(storage, demo);
-    expect(readSavedCases(storage)).toEqual({ personal: own, sample: demo });
-    clearSavedCase(storage, true);
-    expect(readSavedCases(storage)).toEqual({ personal: own, sample: null });
+    writeSavedCase(storage, demo, "sample");
+    const migrated = readSavedCases(storage).visits;
+    expect(migrated.map(visit => visit.draft)).toEqual([own]);
+    expect(readSavedCases(storage).sample).toEqual(demo);
+    clearSavedCase(storage, true, null);
+    expect(readSavedCases(storage)).toEqual({ visits: migrated, sample: null });
     own.call.promisedBalance = "75";
-    writeSavedCase(storage, own);
+    writeSavedCase(storage, own, migrated[0].id);
     expect(storage.getItem("billshield:guest-case:v1")).toBeNull();
-    expect(readSavedCases(storage).personal).toEqual(own);
+    expect(readSavedCases(storage).visits.map(visit => visit.draft)).toEqual([own]);
   });
 
   it("keeps old sample cases available for resume and clears only the requested case", () => {
     const storage = memoryStorage();
     const demo = guestCase(true);
     storage.setItem("billshield:guest-case:v1", JSON.stringify(demo));
-    expect(readSavedCases(storage)).toEqual({ personal: null, sample: demo });
-    writeSavedCase(storage, guestCase(false));
-    clearSavedCase(storage, false);
-    expect(readSavedCases(storage)).toEqual({ personal: null, sample: demo });
-    clearSavedCase(storage, true);
-    expect(readSavedCases(storage)).toEqual({ personal: null, sample: null });
+    expect(readSavedCases(storage)).toEqual({ visits: [], sample: demo });
+    writeSavedCase(storage, guestCase(false), "new-visit");
+    clearSavedCase(storage, false, "new-visit");
+    expect(readSavedCases(storage)).toEqual({ visits: [], sample: demo });
+    clearSavedCase(storage, true, null);
+    expect(readSavedCases(storage)).toEqual({ visits: [], sample: null });
   });
 
   it("rejects malformed JSON and malformed nested drafts before Resume; valid slots survive", () => {
     const storage = memoryStorage();
     const demo = guestCase(true);
-    writeSavedCase(storage, demo);
+    writeSavedCase(storage, demo, "sample");
     const malformed = guestCase(false);
     for (const raw of [
       "{", "null", JSON.stringify({ first: {}, call: {}, next: {}, checked: true }),
@@ -61,8 +65,28 @@ describe("saved guest cases", () => {
       JSON.stringify({ ...malformed, call: { ...malformed.call, promisedBalance: {} } }),
     ]) {
       storage.setItem("billshield:guest-case:v1", raw);
-      expect(readSavedCases(storage)).toEqual({ personal: null, sample: demo });
+      expect(readSavedCases(storage)).toEqual({ visits: [], sample: demo });
     }
+  });
+
+  it("keeps legacy personal and demo slots when adding, updating and deleting a second real visit", () => {
+    const storage = memoryStorage();
+    const own = guestCase(false);
+    const demo = guestCase(true);
+    storage.setItem("billshield:personal-case:v1", JSON.stringify(own));
+    storage.setItem("billshield:sample-case:v1", JSON.stringify(demo));
+    const second = guestCase(false);
+    second.first.balance = "799.99";
+    writeSavedCase(storage, second, "new-id", "Visit two");
+    writeSavedCase(storage, { ...second, resolved: true }, "new-id", "Updated name");
+    const { visits, sample } = readSavedCases(storage);
+    expect(visits).toHaveLength(2);
+    expect(visits[0]).toMatchObject({ id: "new-id", label: "Updated name", draft: { resolved: true } });
+    expect(visits[1].draft).toEqual(own);
+    expect(sample).toEqual(demo);
+    storage.setItem("billshield:visit:v2:broken", "{");
+    clearSavedCase(storage, false, visits[1].id);
+    expect(readSavedCases(storage)).toEqual({ visits: [visits[0]], sample: demo });
   });
 });
 

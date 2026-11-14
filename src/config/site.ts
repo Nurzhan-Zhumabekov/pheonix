@@ -28,7 +28,7 @@ export const site = {
   sample: { label: "Try a sample", href: "/try?sample=1" } satisfies Link,
   steps: [
     { title: "Compare the amounts", text: "Use the patient responsibility from your final explanation of benefits (EOB), payments applied to the visit, and the balance on your statement." },
-    { title: "Prepare your call", text: "See which office can clarify the difference and copy a question that includes your amounts and dates." },
+    { title: "Contact the right office", text: "Prepare a call or copy a portal message with your dates and amounts. Add a reminder for the day you expect a reply." },
     { title: "Check the next statement", text: "Save the balance the clinic quoted. When a new statement arrives, compare it with your original check and the amount you were told." },
   ],
   faq: [
@@ -44,7 +44,7 @@ export const site = {
       price: 0,
       period: "month",
       blurb: "Check one visit and see what changes on the next statement.",
-      features: ["Compare the bill, EOB, and payments", "Prepare a question for billing", "Save one case in this browser", "Check the next statement"],
+      features: ["Compare the bill, EOB, and payments", "Call and portal messages", "Save household visits in this browser", "Check the next statement"],
       cta: "Check my bill",
       href: "/try",
     },
@@ -56,8 +56,8 @@ export const site = {
       annualPrice: 59,
       blurb: "Keep a clear record of the numbers and the follow-up.",
       features: ["Everything in Free", "Printable case summary", "Original and updated balances together", "Amounts and dates to reference during a call"],
-      cta: "Try report demo",
-      href: "/try?sample=1",
+      cta: "Unlock printable case report",
+      href: "/pricing#report-checkout",
       highlighted: true,
     },
   ] satisfies Plan[],

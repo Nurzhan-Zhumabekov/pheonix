@@ -1,0 +1,29 @@
+.tabList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 1rem;
+}
+
+.tabList button {
+  appearance: none;
+  font: inherit;
+  font-size: 0.94rem;
+  font-weight: 650;
+  color: var(--quiet);
+  background: transparent;
+  border: 0;
+  border-bottom: 3px solid transparent;
+  cursor: pointer;
+  padding: 0.6rem 0.3rem;
+}
+
+.tabList button[aria-selected="true"] {
+  color: var(--teal);
+  border-bottom-color: currentColor;
+}
+
+.checkTitle { font-size: 0.88rem; margin: 0.75rem 0 0.2rem; }
+.checklist { padding-left: 1.25rem; margin: 0; font-size: 0.88rem; }
+.message { white-space: pre-line; }

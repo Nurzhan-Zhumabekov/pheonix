@@ -1,4 +1,4 @@
-import { createBillSample } from "../samples/bill-sample";
+import { createBillSample, type DemoScenario } from "../samples/bill-sample";
 import { formatUsdCents, parseUsdCents } from "./bill-money";
 import type { BillEob, BillInput, BillPayment, BillStatement, CallRecord, NextStatementInput } from "./bill-types";
 
@@ -151,8 +151,8 @@ function paymentDrafts(payments: BillPayment[] | null): Pick<BillDraft, "payment
   };
 }
 
-export function sampleDrafts(): { first: BillDraft; call: CallDraft; next: NextDraft } {
-  const { first, call, next } = createBillSample();
+export function sampleDrafts(scenario: DemoScenario = "copay"): { first: BillDraft; call: CallDraft; next: NextDraft } {
+  const { first, call, next } = createBillSample(scenario);
   return {
     first: {
       visitDate: first.visitDate ?? "", sameVisit: first.sameVisit === true,
